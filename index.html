@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Animated Single Page with Paystack and Firebase</title>
+    <style>
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background: linear-gradient(to bottom, #3F51B5, #2196F3);
+            padding: 16px;
+            color: #FFFFFF;
+        }
+
+        .container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            transition: opacity 0.5s ease-in-out, transform 0.5s ease-in-out;
+        }
+
+        .hidden {
+            opacity: 0;
+            transform: translateY(20px);
+            pointer-events: none;
+        }
+
+        .card, .dark-magic {
+            background: #2196F3;
+            padding: 20px;
+            border-radius: 20px;
+            border: 4px solid #FFFFFF;
+            width: 100%;
+            max-width: 400px;
+            text-align: center;
+        }
+
+        .form-group {
+            margin-bottom: 16px;
+            position: relative;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 10px;
+            border: 3px solid #2196F3;
+            border-radius: 20px;
+            font-size: 14px;
+        }
+
+        .form-group button {
+            width: 100%;
+            padding: 12px;
+            background: #FFFFFF;
+            color: #000000;
+            border: 3px solid #2196F3;
+            border-radius: 20px;
+            font-size: 18px;
+            cursor: pointer;
+        }
+
+        .form-group button:hover {
+            background: #E3F2FD;
+        }
+
+        .button {
+            background-color: #FFFFFF;
+            color: #2196F3;
+            padding: 12px;
+            font-size: 18px;
+            font-weight: bold;
+            border: 3px solid #2196F3;
+            border-radius: 20px;
+            cursor: pointer;
+            margin: 16px 0;
+        }
+
+        #activationCodeDisplay {
+            margin-top: 20px;
+            font-size: 18px;
+            display: none;
+            color: #FFEB3B;
+        }
+
+        .back-button {
+            background-color: #FFFFFF;
+            color: #2196F3;
+            padding: 12px;
+            font-size: 18px;
+            font-weight: bold;
+            border: 3px solid #2196F3;
+            border-radius: 20px;
+            cursor: pointer;
+            margin-top: 20px;
+        }
+
+        .enter-button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 12px;
+            font-size: 18px;
+            font-weight: bold;
+            border: 3px solid #4CAF50;
+            border-radius: 20px;
+            cursor: pointer;
+            margin-top: 16px;
+        }
+        
+        .enter-button:hover {
+            background-color: #45a049;
+        }
+    </style>
+    <!-- Paystack SDK -->
+    <script src="https://js.paystack.co/v1/inline.js"></script>
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+</head>
+<body>
+
+    <!-- Registration/Login Section -->
+    <div id="authSection" class="container">
+        <div class="card">
+            <h2>Register To Get Pass Code</h2>
+
+            <div class="form-group">
+                <input type="email" id="email" placeholder="Enter your email">
+            </div>
+
+            <div class="form-group">
+                <input type="password" id="password" placeholder="Enter your password">
+            </div>
+
+            <div class="form-group">
+                <button id="createAccountButton">Create New Account</button>
+            </div>
+
+            <div class="form-group">
+                <button id="loginButton">Log In</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Dark Magic Section -->
+    <div id="darkMagicSection" class="container hidden">
+        <div class="dark-magic">
+            <h2>Dark Magic</h2>
+            <p>Input Your Pass Code</p>
+            <div id="activationCodeDisplay"></div> <!-- Display code here -->
+            <input type="password" id="passCodeInput" placeholder="Enter pass code">
+            <button class="button" id="payNowButton">Pay ₦500</button>
+            <button class="back-button" id="backButton">Back</button>
+            <button class="enter-button" id="enterButton">Enter</button>
+        </div>
+    </div>
+
+    <script>
+        // Firebase Configuration
+        var firebaseConfig = {
+            apiKey: "AIzaSyDvFDByPPo9zgwKLdPaREz1OVMQCXmPfrs",
+            authDomain: "bets-d795d.firebaseapp.com",
+            databaseURL: "https://bets-d795d-default-rtdb.firebaseio.com",
+            projectId: "bets-d795d",
+            storageBucket: "bets-d795d.appspot.com",
+            messagingSenderId: "384386108287",
+            appId: "1:384386108287:android:d238a5ec8068d9bb9be84a"
+        };
+
+        // Initialize Firebase
+        if (!firebase.apps.length) {
+            firebase.initializeApp(firebaseConfig);
+        }
+
+        // Handle user login and registration
+        document.getElementById('createAccountButton').addEventListener('click', () => {
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+
+            firebase.auth().createUserWithEmailAndPassword(email, password)
+                .then((userCredential) => {
+                    alert("Account created successfully!");
+                    transitionTo('darkMagicSection');
+                })
+                .catch((error) => {
+                    console.error("Error creating account:", error);
+                    alert(error.message);
+                });
+        });
+
+        document.getElementById('loginButton').addEventListener('click', () => {
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+
+            firebase.auth().signInWithEmailAndPassword(email, password)
+                .then((userCredential) => {
+                    alert("Logged in successfully!");
+                    transitionTo('darkMagicSection');
+                    loadActivationCode(); // Load activation code after login
+                })
+                .catch((error) => {
+                    console.error("Error logging in:", error);
+                    alert(error.message);
+                });
+        });
+
+        // Paystack Configuration
+        const paystackPublicKey = 'pk_live_e45787a06045b099a1f7c1d794b2dd78abfabbda';
+        const amount = 50000; // Amount in kobo (₦500)
+
+        // Store Activation Code in Firebase
+        function storeActivationCodeInFirebase(userId, code) {
+            firebase.database().ref('users/' + userId).set({
+                activationCode: code
+            }).then(() => {
+                console.log('Code stored successfully in Firebase.');
+                document.getElementById('activationCodeDisplay').textContent = `Your Activation Code: ${code}`;
+                document.getElementById('activationCodeDisplay').style.display = 'block';
+            }).catch((error) => {
+                console.error('Error storing code in Firebase:', error);
+            });
+        }
+
+        // Handle payment and activation code generation
+        document.getElementById('payNowButton').addEventListener('click', () => {
+            const userId = firebase.auth().currentUser.uid; // Get current user ID
+            payWithPaystack(userId);
+        });
+
+        function payWithPaystack(userId) {
+            const handler = PaystackPop.setup({
+                key: paystackPublicKey,
+                email: firebase.auth().currentUser.email, // Use current user's email
+                amount: amount,
+                currency: "NGN",
+                ref: 'ref' + Math.floor(Math.random() * 1000000000),
+                callback: function(response) {
+                    alert('Payment successful! Transaction ref: ' + response.reference);
+                    const activationCode = Math.random().toString(36).substring(2, 10).toUpperCase();
+                    storeActivationCodeInFirebase(userId, activationCode);
+                },
+                onClose: function() {
+                    alert('Transaction was not completed.');
+                }
+            });
+            handler.openIframe();
+        }
+
+        // Load Activation Code after login
+        function loadActivationCode() {
+            const userId = firebase.auth().currentUser.uid;
+            firebase.database().ref('users/' + userId).once('value').then((snapshot) => {
+                const activationCode = snapshot.val()?.activationCode;
+                if (activationCode) {
+                    document.getElementById('activationCodeDisplay').textContent = `Your Activation Code: ${activationCode}`;
+                    document.getElementById('activationCodeDisplay').style.display = 'block';
+                }
+            });
+        }
+
+        // Handle back button
+        document.getElementById('backButton').addEventListener('click', () => {
+            transitionTo('authSection');
+        });
+
+        // Handle enter button
+        document.getElementById('enterButton').addEventListener('click', () => {
+            const enteredCode = document.getElementById('passCodeInput').value.trim().toUpperCase();
+            const userId = firebase.auth().currentUser.uid;
+            firebase.database().ref('users/' + userId).once('value', snapshot => {
+                const storedCode = snapshot.val()?.activationCode;
+                if (enteredCode === storedCode) {
+                    alert("Code correct! Redirecting...");
+                    window.location.href = "anotherPage.html"; // Redirect to another page
+                } else {
+                    alert("Invalid code. Please try again.");
+                }
+            });
+        });
+
+        // Handle transitions
+        function transitionTo(sectionId) {
+            const currentSection = document.querySelector('.container:not(.hidden)');
+            const nextSection = document.getElementById(sectionId);
+
+            currentSection.classList.add('hidden');
+            setTimeout(() => {
+                currentSection
+                currentSection.classList.add('hidden');
+                setTimeout(() => {
+                    currentSection.style.display = 'none'; // Hide current section
+                    nextSection.style.display = 'block'; // Show next section
+                    nextSection.classList.remove('hidden');
+                }, 500);
+            }, 500);
+        }
+    </script>
+
+</body>
+</html>
